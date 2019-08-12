@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_0fp0yhd" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="2.0.3">
+  <bpmn:signal id="taskClaimed" name="taskClaimed" />
+  <bpmn:signal id="taskDone" name="taskDone" />
+  <bpmn:process id="TelegramIntegationProcess" name="Telegram Integation" isExecutable="true" camunda:candidateStarterGroups="admin" camunda:candidateStarterUsers="demo">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="issueIdent" label="Ident" type="string" defaultValue="I-123" />
+          <camunda:formField id="issue" label="Info for People" type="string" defaultValue="Hello everyone!" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>SequenceFlow_1tevy03</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_1tevy03" sourceRef="StartEvent_1" targetRef="ServiceTask_InformPeople" />
+    <bpmn:endEvent id="EndEvent_16t6vi6">
+      <bpmn:incoming>SequenceFlow_1tvwa73</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="ServiceTask_InformPeople" name="Inform People" camunda:type="external" camunda:topic="pme.telegram.demo">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="botTask">
+            <camunda:script scriptFormat="JavaScript">var botTaskJson = {
+ident: issueIdent,
+chatUserOrGroup:"camunda_group",
+msg: issueIdent + ": "+ issue,
+maybeCallback:{
+  signal: "taskClaimed",
+  controls:[{
+   ident:"claimed",
+   text:"I claim the issue",
+   response: "Thanks, {{username}} claimed the issue {{botTaskIdent}}!"
+}
+  ]
+}
+}
+
+S(JSON.stringify(botTaskJson));</camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1tevy03</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0v1rpjy</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_0v1rpjy" sourceRef="ServiceTask_InformPeople" targetRef="IntermediateThrowEvent_1b5kgjm" />
+    <bpmn:sequenceFlow id="SequenceFlow_0aqhi3e" sourceRef="IntermediateThrowEvent_1b5kgjm" targetRef="ExclusiveGateway_0w1wsjz" />
+    <bpmn:intermediateCatchEvent id="IntermediateThrowEvent_1b5kgjm">
+      <bpmn:incoming>SequenceFlow_0v1rpjy</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_1owdr10</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_1alox9o</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0aqhi3e</bpmn:outgoing>
+      <bpmn:signalEventDefinition signalRef="taskClaimed" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_0w1wsjz" default="SequenceFlow_1owdr10">
+      <bpmn:incoming>SequenceFlow_0aqhi3e</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0dmx7xl</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_1owdr10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_0dmx7xl" sourceRef="ExclusiveGateway_0w1wsjz" targetRef="ServiceTask_WaitForWorkDone">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="JavaScript">var json = S(execution.getVariable('botTaskResult'));
+
+var botTaskIdent = json.prop("botTaskIdent");
+
+var callbackIdent = json.prop("callbackIdent");
+
+(botTaskIdent.value() ===  issueIdent &amp;&amp;
+  callbackIdent.value() === "claimed")</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_1owdr10" sourceRef="ExclusiveGateway_0w1wsjz" targetRef="IntermediateThrowEvent_1b5kgjm" />
+    <bpmn:serviceTask id="ServiceTask_WaitForWorkDone" name="Wait for Work done" camunda:type="external" camunda:topic="pme.telegram.demo">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="botTask">
+            <camunda:script scriptFormat="JavaScript">var json = S(execution.getVariable('botTaskResult'));
+
+var from = json.prop("from");
+var username = from.prop("username");
+
+var system = java.lang.System;
+system.out.println("username: "+username.value() );
+
+
+var botTaskJson = {
+ident: issueIdent,
+chatUserOrGroup: username.value(),
+msg: "Just confirm when " + issueIdent + " is done.",
+maybeCallback:{
+    signal: "taskDone",
+  controls:[{
+   ident:"done",
+   text:"Issue is done",
+   response: "Thanks, for solving {{botTaskIdent}}!"},{
+   ident:"help",
+   text:"I need help",
+   response: "Ok, the issue {{botTaskIdent}} is moved back to the Group!"}
+  ]
+}
+}
+
+S(JSON.stringify(botTaskJson));</camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0dmx7xl</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1nquxop</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1nquxop" sourceRef="ServiceTask_WaitForWorkDone" targetRef="IntermediateCatchEvent_09gp34n" />
+    <bpmn:sequenceFlow id="SequenceFlow_0xbbczh" sourceRef="IntermediateCatchEvent_09gp34n" targetRef="ExclusiveGateway_1e0mdl6" />
+    <bpmn:intermediateCatchEvent id="IntermediateCatchEvent_09gp34n">
+      <bpmn:incoming>SequenceFlow_1nquxop</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_1h4hw6h</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0xbbczh</bpmn:outgoing>
+      <bpmn:signalEventDefinition signalRef="taskDone" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_1e0mdl6" default="SequenceFlow_1h4hw6h">
+      <bpmn:incoming>SequenceFlow_0xbbczh</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1857nfb</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_1h4hw6h</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_0z2c1fb</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_1857nfb" sourceRef="ExclusiveGateway_1e0mdl6" targetRef="ServiceTask_IssueSolved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="JavaScript">var json = S(execution.getVariable('botTaskResult'));
+
+var botTaskIdent = json.prop("botTaskIdent");
+
+var callbackIdent = json.prop("callbackIdent");
+
+(botTaskIdent.value() ===  issueIdent &amp;&amp;
+  callbackIdent.value() === "done")</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_1h4hw6h" sourceRef="ExclusiveGateway_1e0mdl6" targetRef="IntermediateCatchEvent_09gp34n" />
+    <bpmn:serviceTask id="ServiceTask_HelpNeeded" name="Help needed" camunda:type="external" camunda:topic="pme.telegram.demo">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="botTask">
+            <camunda:script scriptFormat="JavaScript">var json = S(execution.getVariable('botTaskResult'));
+
+var from = json.prop("from");
+var username = from.prop("username");
+
+var botTaskJson = {
+ident: issueIdent,
+chatUserOrGroup:"camunda_group",
+msg: username.value() + " needs help with "+ issueIdent,
+maybeCallback:{
+  signal: "taskClaimed",
+  controls:[{
+   ident:"claimed",
+   text:"I claim the issue",
+   response: "Thanks, {{username}} claimed the issue {{botTaskIdent}}!"
+}
+  ]
+}
+}
+
+S(JSON.stringify(botTaskJson));</camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0z2c1fb</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1alox9o</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1alox9o" sourceRef="ServiceTask_HelpNeeded" targetRef="IntermediateThrowEvent_1b5kgjm" />
+    <bpmn:sequenceFlow id="SequenceFlow_0z2c1fb" sourceRef="ExclusiveGateway_1e0mdl6" targetRef="ServiceTask_HelpNeeded">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="JavaScript">var json = S(execution.getVariable('botTaskResult'));
+
+var botTaskIdent = json.prop("botTaskIdent");
+
+var callbackIdent = json.prop("callbackIdent");
+
+(botTaskIdent.value() ===  issueIdent &amp;&amp;
+  callbackIdent.value() === "help")</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="ServiceTask_IssueSolved" name="Issue Solved" camunda:type="external" camunda:topic="pme.telegram.demo">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="botTask">
+            <camunda:script scriptFormat="JavaScript">var json = S(execution.getVariable('botTaskResult'));
+
+var from = json.prop("from");
+var username = from.prop("username");
+
+var botTaskJson = {
+ident: issueIdent,
+chatUserOrGroup:"camunda_group",
+msg: username.value() + " solved "+ issueIdent,
+}
+
+S(JSON.stringify(botTaskJson));</camunda:script>
+          </camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1857nfb</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1tvwa73</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1tvwa73" sourceRef="ServiceTask_IssueSolved" targetRef="EndEvent_16t6vi6" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="TelegramIntegationProcess">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="173" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1tevy03_di" bpmnElement="SequenceFlow_1tevy03">
+        <di:waypoint x="209" y="120" />
+        <di:waypoint x="244" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_16t6vi6_di" bpmnElement="EndEvent_16t6vi6">
+        <dc:Bounds x="1062" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_0w5qvid_di" bpmnElement="ServiceTask_InformPeople">
+        <dc:Bounds x="244" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0v1rpjy_di" bpmnElement="SequenceFlow_0v1rpjy">
+        <di:waypoint x="344" y="120" />
+        <di:waypoint x="410" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0aqhi3e_di" bpmnElement="SequenceFlow_0aqhi3e">
+        <di:waypoint x="446" y="120" />
+        <di:waypoint x="487" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="IntermediateCatchEvent_047xbrb_di" bpmnElement="IntermediateThrowEvent_1b5kgjm">
+        <dc:Bounds x="410" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_0w1wsjz_di" bpmnElement="ExclusiveGateway_0w1wsjz" isMarkerVisible="true">
+        <dc:Bounds x="487" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0dmx7xl_di" bpmnElement="SequenceFlow_0dmx7xl">
+        <di:waypoint x="537" y="120" />
+        <di:waypoint x="582" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1owdr10_di" bpmnElement="SequenceFlow_1owdr10">
+        <di:waypoint x="512" y="145" />
+        <di:waypoint x="512" y="167" />
+        <di:waypoint x="428" y="167" />
+        <di:waypoint x="428" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_1eyyxlh_di" bpmnElement="ServiceTask_WaitForWorkDone">
+        <dc:Bounds x="582" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1nquxop_di" bpmnElement="SequenceFlow_1nquxop">
+        <di:waypoint x="682" y="120" />
+        <di:waypoint x="725" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0xbbczh_di" bpmnElement="SequenceFlow_0xbbczh">
+        <di:waypoint x="761" y="120" />
+        <di:waypoint x="796" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="IntermediateCatchEvent_1f1lgdr_di" bpmnElement="IntermediateCatchEvent_09gp34n">
+        <dc:Bounds x="725" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_1e0mdl6_di" bpmnElement="ExclusiveGateway_1e0mdl6" isMarkerVisible="true">
+        <dc:Bounds x="796" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1857nfb_di" bpmnElement="SequenceFlow_1857nfb">
+        <di:waypoint x="846" y="120" />
+        <di:waypoint x="922" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1h4hw6h_di" bpmnElement="SequenceFlow_1h4hw6h">
+        <di:waypoint x="821" y="145" />
+        <di:waypoint x="821" y="167" />
+        <di:waypoint x="743" y="167" />
+        <di:waypoint x="743" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_1tpche8_di" bpmnElement="ServiceTask_HelpNeeded">
+        <dc:Bounds x="582" y="-48" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1alox9o_di" bpmnElement="SequenceFlow_1alox9o">
+        <di:waypoint x="582" y="-8" />
+        <di:waypoint x="428" y="-8" />
+        <di:waypoint x="428" y="102" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0z2c1fb_di" bpmnElement="SequenceFlow_0z2c1fb">
+        <di:waypoint x="821" y="95" />
+        <di:waypoint x="821" y="-8" />
+        <di:waypoint x="682" y="-8" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_1nonygm_di" bpmnElement="ServiceTask_IssueSolved">
+        <dc:Bounds x="922" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1tvwa73_di" bpmnElement="SequenceFlow_1tvwa73">
+        <di:waypoint x="1022" y="120" />
+        <di:waypoint x="1062" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

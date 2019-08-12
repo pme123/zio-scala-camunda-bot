@@ -1,0 +1,14 @@
+logs
+target
+out
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+
+bot.token
+/.bloop/server.json
+/.metals/metals.h2.db
+/.metals/metals.log
+/.vscode/settings.json
