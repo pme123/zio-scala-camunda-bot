@@ -5,7 +5,7 @@ import com.softwaremill.sttp.{DeserializationError, HttpURLConnectionBackend, Id
 import play.api.libs.json.{JsError, JsValue, Reads}
 import pme123.ziocamundabot.entity.camunda.{CompleteTask, ExternalTask, FetchAndLock, Signal}
 import pme123.ziocamundabot.entity.configuration.CamundaConfig
-import zio.console.{Console, putStrLn}
+import zio.console.Console
 import zio.{IO, ZIO}
 
 
@@ -59,7 +59,7 @@ object Camunda {
             .response(responseParser)
             .send()
             .handleResponse(uri)
-          _ <- putStrLn(s"Result of $uri: $r")
+        //  _ <- putStrLn(s"Result of $uri: $r")
         } yield r
 
 

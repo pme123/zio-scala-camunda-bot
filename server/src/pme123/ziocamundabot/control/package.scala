@@ -55,7 +55,7 @@ package object control {
   }
 
   object bot extends Bot.Service[Bot] {
-    def sendMessage(chatId: ChatId, maybeRCs: Option[RegisterCallback], msg: String): TaskR[Bot, Message] =
+    def sendMessage(chatId: ChatId, maybeRCs: Option[RegisterCallback], msg: String): ZIO[Bot, BotException, Message] =
       ZIO.accessM(_.bot sendMessage(chatId, maybeRCs, msg))
   }
 

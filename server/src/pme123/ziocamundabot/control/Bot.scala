@@ -1,14 +1,18 @@
 package pme123.ziocamundabot.control
 
-import com.bot4s.telegram.cats.{Polling, TelegramBot}
+import com.bot4s.telegram.api.RequestHandler
+import com.bot4s.telegram.api.declarative.{Callbacks, Commands}
+import com.bot4s.telegram.clients.FutureSttpClient
+import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.SendMessage
 import com.bot4s.telegram.models.{InlineKeyboardButton, InlineKeyboardMarkup, Message, ChatId => TelegramChatId}
-import com.softwaremill.sttp.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import com.softwaremill.sttp.testing.SttpBackendStub
+import pme123.ziocamundabot.control.BotException.BotServiceException
 import pme123.ziocamundabot.entity.bot._
 import pme123.ziocamundabot.entity.register.RegisterCallback
-import zio.interop.catz._
 import zio.{Task, ZIO}
 
+import scala.concurrent.Future
 import scala.language.higherKinds
 
 trait Bot extends Serializable {
@@ -24,7 +28,7 @@ object Bot {
     def sendMessage(chatId: ChatId,
                     maybeRCs: Option[RegisterCallback],
                     msg: String
-                   ): ZIO[R, Throwable, Message]
+                   ): ZIO[R, BotException, Message]
   }
 
   trait Live extends Bot {
@@ -36,33 +40,51 @@ object Bot {
       def sendMessage(chatId: ChatId,
                       maybeRCs: Option[RegisterCallback],
                       msg: String
-                     ): Task[Message] =
+                     ): ZIO[Any, BotException, Message] =
         myBot.sendMessage(chatId, maybeRCs, msg)
     }
 
     class MyBot
-      extends TelegramBot[Task](token, AsyncHttpClientCatsBackend())
-        with Polling[Task] {
+      extends TelegramBot
+        with Polling
+        with Callbacks[Future]
+        with Commands[Future] {
+
+      implicit val backend: SttpBackendStub[Future, Nothing] = SttpBackendStub.asynchronousFuture
+
+      override implicit val client: RequestHandler[Future] = new FutureSttpClient(token)
 
       def sendMessage(chatId: ChatId,
                       maybeRCs: Option[RegisterCallback],
                       msg: String
-                     ): Task[Message] =
+                     ): ZIO[Any, BotException, Message] =
         for {
           replyMarkup <- claimedCallback(maybeRCs)
           botMsg <- requestMsg(chatId, msg)(replyMarkup)
         } yield botMsg
 
+      onCallbackWithTag(CALLBACK_TAG) { implicit cbq => // listens on all callbacks that START with TAG
+        Future(println("callback called"))
+      }
+
       private def requestMsg(chatId: ChatId, msg: String
                             )(replyMarkup: Option[(String, InlineKeyboardMarkup)]
-                            ): Task[Message] =
-        request(SendMessage(
-          TelegramChatId(chatId.toString),
-          msg,
-          replyMarkup = replyMarkup.map { case (_, markup) => markup }
-        ))
+                            ): ZIO[Any, BotException, Message] =
+        Task.fromFuture { implicit ex =>
+          println("before request")
+          val r = request(SendMessage(
+            TelegramChatId(chatId.toString),
+            msg,
+            replyMarkup = replyMarkup.map { case (_, markup) => markup }
+          ))
+          println("after request")
+          r
+        }.mapError { exc =>
+          exc.printStackTrace()
+          BotServiceException(s"Problem calling Telegram API: ${exc.getMessage}", exc)
+        }
 
-      private def claimedCallback(maybeRegCallback: Option[RegisterCallback]): Task[Option[(String, InlineKeyboardMarkup)]] =
+      private def claimedCallback(maybeRegCallback: Option[RegisterCallback]): ZIO[Any, BotException, Option[(String, InlineKeyboardMarkup)]] =
         Task {
           maybeRegCallback map { case RegisterCallback(requestId, _, callback) =>
             (requestId, InlineKeyboardMarkup.singleColumn(
@@ -73,6 +95,8 @@ object Bot {
                 )
               }))
           }
+        }.mapError {
+          e => BotServiceException(s"Problem claiming Callback ${e.getMessage}", e)
         }
     }
 
@@ -83,6 +107,8 @@ object Bot {
 sealed trait BotException
 
 object BotException {
+
+  case class BotServiceException(msg: String, cause: Throwable) extends BotException
 
   case class BotReadException(msg: String) extends BotException
 
