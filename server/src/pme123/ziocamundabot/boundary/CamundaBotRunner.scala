@@ -1,13 +1,12 @@
 package pme123.ziocamundabot.boundary
 
-import play.api.Logger
 import pme123.ziocamundabot.control.Camunda.CamundaEnv
 import pme123.ziocamundabot.control._
 import pme123.ziocamundabot.control.bot._
 import pme123.ziocamundabot.control.camunda._
 import pme123.ziocamundabot.control.json._
 import pme123.ziocamundabot.control.register._
-import pme123.ziocamundabot.entity.bot.{BotTask, Receipt}
+import pme123.ziocamundabot.entity.bot.BotTask
 import pme123.ziocamundabot.entity.camunda.{CompleteTask, ExternalTask, FetchAndLock, Topic}
 import pme123.ziocamundabot.entity.configuration.CamundaConfig
 import zio._
@@ -16,33 +15,50 @@ import zio.console.{putStrLn, _}
 import zio.duration._
 
 import scala.io.Source
-import pme123.ziocamundabot.boundary.AppRuntime.{AppEnvironment, environment}
 
-object CamundaBotRunner
-  extends scala.App {
+object CamundaBotRunner extends App {
 
-  def run(): ZIO[AppEnvironment, Nothing, Int] =
-    ZIO.runtime[AppEnvironment].flatMap { implicit rts =>
-      (for {
-        _ <- putStrLn("Let's start!")
-        conf <- configuration.load.provide(Configuration.Live)
-        token <- readToken
-        botService =
+  type AppEnvironment = Json with Register with Bot with Camunda with Console with Clock
+
+  private def environment(camundaConfig: CamundaConfig, botToken: String): AppEnvironment =
+
+    new Json.Live
+      with Register.Live
+      with Console.Live
+      with Clock.Live
+      with Bot.Live
+      with Camunda.Live {
+      val config: CamundaConfig = camundaConfig
+      val token: String = botToken
+    }
+
+  def run(args: List[String]): ZIO[Environment, Nothing, Int] = {
+    val program: ZIO[Environment, Nothing, Int] = (for {
+      _ <- putStrLn("Let's start!")
+      conf <- configuration.load.provide(Configuration.Live)
+      token <- readToken
+      /*  botService =
         ZIO.runtime[AppEnvironment].flatMap { implicit rts =>
           initBot().forever
-        }
-        camundaService =
-        ZIO.runtime[AppEnvironment].flatMap { implicit rts =>
-          fetchAndProcessTasks.repeat(Schedule.spaced(1.second))
-        }
-
-         program <- (botService &&& camundaService).provideSome[AppEnvironment]{ _ =>
-      //  program <- (camundaService).provideSome[Environment]({ _ =>
-          environment(conf.camunda, token)
-        }
-      } yield program)
-    }.mapError(e => println("ERROR: " + e))
+        } */
+      camundaService =
+      ZIO.runtime[AppEnvironment].flatMap { implicit rts =>
+        fetchAndProcessTasks
+      }
+      // _ <- fetchAndProcessTasks.repeat(Schedule.spaced(1.second))
+      program <- camundaService.provideSome[Environment]({ _ =>
+        //  program <- (camundaService).provideSome[Environment]({ _ =>
+        environment(conf.camunda, token)
+      })
+    } yield program)
+      .mapError(e => println("ERROR: " + e))
       .fold(_ => 1, _ => 0)
+
+    program.foldM(
+      err => putStrLn(s"Execution failed with: $err") *> IO.succeed(1),
+      _ => IO.succeed(0)
+    )
+  }
 
   private lazy val readToken = Managed.make(Task(Source.fromFile("bot.token")))(source => Task.effect(source.close()).ignore).use {
     source =>
@@ -51,17 +67,13 @@ object CamundaBotRunner
   private val workerId = "camunda-bot-scheduler"
   private val botTaskTag = "botTask"
 
-  private lazy val fetchAndProcessTasks: ZIO[CamundaEnv with Bot, CamundaException, Receipt] =
-    for {
+  private lazy val fetchAndProcessTasks: ZIO[AppEnvironment, Object, Int] =
+    (for {
       externalTasks <- fetchAndLock(FetchAndLock(workerId, List(Topic("pme.telegram.demo", Seq(botTaskTag)))))
-      _ = println("FETCHED TASKS")
-      receipts <- ZIO.foreachParN(5)(externalTasks)(task =>
-        handleExternalTask(task)
-          .fold(
-            t => Receipt.failure(task.id, t),
-            _ => Receipt.success(task.id)
-          ))
-    } yield receipts.foldLeft(Receipt.empty)(_ |+| _)
+      _ = println("FETCHED TASKS " + externalTasks)
+      _ <- ZIO.foreachParN(5)(externalTasks)(task => handleExternalTask(task))
+    } yield ())
+      .repeat(Schedule.spaced(1.second)).forever
 
   private def handleExternalTask(externalTask: ExternalTask): ZIO[CamundaEnv with Bot, Object, Unit] =
     (for {
@@ -79,10 +91,6 @@ object CamundaBotRunner
       e
     })
 
-  AppRuntime.unsafeRun(run().catchAll { t =>
-    println("Exception running block", t)
-    ZIO.fail(t)
-  })
 
   /*
     object Main extends App {
