@@ -3,6 +3,7 @@ package pme123.ziocamundabot.control
 import com.softwaremill.sttp.playJson.{asJson, _}
 import com.softwaremill.sttp.{DeserializationError, HttpURLConnectionBackend, Id, Response, SttpBackend, Uri, sttp, _}
 import play.api.libs.json.{JsError, JsValue, Reads}
+import pme123.ziocamundabot.control.CamundaException.ServiceException
 import pme123.ziocamundabot.entity.camunda.{CompleteTask, ExternalTask, FetchAndLock, Signal}
 import pme123.ziocamundabot.entity.configuration.CamundaConfig
 import zio.console.Console
@@ -10,7 +11,7 @@ import zio.{IO, ZIO}
 
 
 trait Camunda extends Serializable with Console {
-  def camunda: Camunda.Service[Console]
+  def camundaService: Camunda.Service[Console]
 }
 
 object Camunda {
@@ -20,7 +21,7 @@ object Camunda {
   trait Service[R <: Console] {
     def fetchAndLock(fetchAndLock: FetchAndLock): ZIO[R, CamundaException, Seq[ExternalTask]]
 
-    def completeTask(completeTask: CompleteTask): ZIO[R, CamundaException, JsValue]
+    def completeTask(completeTask: CompleteTask): ZIO[R, CamundaException, Unit]
 
     def signal(signal: Signal): ZIO[R, CamundaException, JsValue]
   }
@@ -32,7 +33,7 @@ object Camunda {
     type ResponseParser[C] = ResponseAs[Either[DeserializationError[JsError], C], Nothing]
     implicit val backend: SttpBackend[Id, Nothing] = HttpURLConnectionBackend()
 
-    val camunda: Service[Console] = new Service[Console] {
+    val camundaService: Service[Console] = new Service[Console] {
 
       def fetchAndLock(fetchAndLock: FetchAndLock): ZIO[Console, CamundaException, Seq[ExternalTask]] =
         post(externalTaskUri,
@@ -40,10 +41,9 @@ object Camunda {
           asJson[Seq[ExternalTask]]
         )
 
-      def completeTask(completeTask: CompleteTask): ZIO[Console, CamundaException, JsValue] =
-        post(completeTaskUri(completeTask.taskId),
-          completeTask,
-          asJson[JsValue])
+      def completeTask(completeTask: CompleteTask): ZIO[Console, CamundaException, Unit] =
+        post(completeTaskUri(completeTask.taskId), completeTask)
+          .map(_ => ())
 
       def signal(signal: Signal): ZIO[Console, CamundaException, JsValue] =
         post(signalUri, signal, asJson[JsValue])
@@ -59,8 +59,23 @@ object Camunda {
             .response(responseParser)
             .send()
             .handleResponse(uri)
-        //  _ <- putStrLn(s"Result of $uri: $r")
+          _ = println(s"POST: $uri")
+          //  _ <- putStrLn(s"Result of $uri: $r")
         } yield r
+
+      private def post[B: BodySerializer](uri: Uri,
+                                                               body: B) =
+        ZIO.fromEither(for {
+          r <- sttp
+            .auth.basic(config.user, config.password)
+            .body(body)
+            .post(uri)
+            .response(ignore)
+            .send()
+            .body
+          //  _ <- putStrLn(s"Result of $uri: $r")
+        } yield r)
+          .mapError(m => ServiceException(s"Problem calling $uri\n$m"))
 
 
       private lazy val baseUrl = s"${config.endpoint}:${config.port}/engine-rest"
@@ -83,7 +98,8 @@ object Camunda {
       response.body match {
         case Left(ex: String) =>
           ZIO.fail(ServiceException(s"Problem calling $uri\n$ex"))
-        case Right(Left(ex)) => ZIO.fail(JsonParseException(s"Problem parsing response!" + ex.error.errors.mkString("\n - ", " - ", "\n")))
+        case Right(Left(ex)) =>
+          ZIO.fail(JsonParseException(s"Problem parsing response!" + ex.error.errors.mkString("\n - ", " - ", "\n")))
         case Right(Right(result)) =>
           ZIO.succeed(result)
       }

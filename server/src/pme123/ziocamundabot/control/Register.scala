@@ -1,5 +1,6 @@
 package pme123.ziocamundabot.control
 
+import pme123.ziocamundabot.control.RegisterException.RegisterChatException
 import pme123.ziocamundabot.entity.bot.{BotTask, BotTaskIdent, ChatId, ChatUserOrGroup}
 import pme123.ziocamundabot.entity.register.{RegisterCallback, RequestCallback, ResultCallback}
 import zio.stm.TRef
@@ -16,7 +17,7 @@ object Register {
 
   trait Service[R] {
 
-    def registerChat(maybeId: Option[ChatUserOrGroup], chatId: ChatId): ZIO[R, String, String]
+    def registerChat(maybeId: Option[ChatUserOrGroup], chatId: ChatId): ZIO[R, RegisterException, String]
 
     def requestChat(chatUserOrGroup: ChatUserOrGroup): ZIO[R, Nothing, ChatId]
 
@@ -36,15 +37,14 @@ object Register {
       val chatIdMap: UIO[ChatIds] = TRef.make(Map(camunda_group -> -319641852L, "pme123" -> 275469757L)).commit
       val callbackIdMap: UIO[CallbackIdMap] = TRef.make(Map.empty[String, RegisterCallback]).commit
 
-      def registerChat(maybeId: Option[ChatUserOrGroup], chatId: ChatId): ZIO[Any, String, String] =
+      def registerChat(maybeId: Option[ChatUserOrGroup], chatId: ChatId): ZIO[Any, RegisterException, String] =
         (for {
           id <- ZIO.fromOption(maybeId)
           tRef <- chatIdMap
           r <- tRef.update(_ + (id -> chatId)).commit
             .map(_ => "you were successful registered")
         } yield r)
-          .mapError(_ => "Sorry, you need a Username to talk with me")
-
+          .mapError(_ => RegisterChatException("Sorry, you need a Username to talk with me"))
 
       def myTasks(maybeId: Option[ChatUserOrGroup], chatId: ChatId): UIO[Seq[String]] =
         for {
@@ -93,12 +93,10 @@ object Register {
 
 }
 
-sealed trait RegistryException
+sealed trait RegisterException extends Throwable
 
-object RegistryException {
+object RegisterException {
 
-  case class RegistryReadException(msg: String) extends RegistryException
-
-  case class RegistryWriteException(msg: String) extends RegistryException
+  case class RegisterChatException(msg: String) extends RegisterException
 
 }

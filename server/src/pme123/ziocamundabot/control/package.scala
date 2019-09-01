@@ -18,13 +18,13 @@ package object control {
   object camunda extends Camunda.Service[Camunda] {
 
     def fetchAndLock(fetchAndLock: FetchAndLock): ZIO[Camunda, CamundaException, Seq[ExternalTask]] =
-      ZIO.accessM(_.camunda fetchAndLock fetchAndLock)
+      ZIO.accessM(_.camundaService fetchAndLock fetchAndLock)
 
-    def completeTask(completeTask: CompleteTask): ZIO[Camunda, CamundaException, j.JsValue] =
-      ZIO.accessM(_.camunda completeTask completeTask)
+    def completeTask(completeTask: CompleteTask): ZIO[Camunda, CamundaException, Unit] =
+      ZIO.accessM(_.camundaService completeTask completeTask)
 
     def signal(signal: Signal): ZIO[Camunda, CamundaException, j.JsValue] =
-      ZIO.accessM(_.camunda signal signal)
+      ZIO.accessM(_.camundaService signal signal)
   }
 
   object json extends Json.Service[Json] {
@@ -38,7 +38,7 @@ package object control {
 
   object register extends Register.Service[Register] {
 
-    def registerChat(maybeId: Option[ChatUserOrGroup], chatId: ChatId): ZIO[Register, String, String] =
+    def registerChat(maybeId: Option[ChatUserOrGroup], chatId: ChatId): ZIO[Register, RegisterException, String] =
       ZIO.accessM(_.registry registerChat(maybeId, chatId))
 
     def requestChat(chatUserOrGroup: ChatUserOrGroup): ZIO[Register, Nothing, ChatId] =
@@ -55,8 +55,13 @@ package object control {
   }
 
   object bot extends Bot.Service[Bot] {
+
     def sendMessage(chatId: ChatId, maybeRCs: Option[RegisterCallback], msg: String): ZIO[Bot, BotException, Message] =
-      ZIO.accessM(_.bot sendMessage(chatId, maybeRCs, msg))
+      ZIO.accessM(_.botService sendMessage(chatId, maybeRCs, msg))
+
+    def initBot(): ZIO[Bot, BotException, Unit] =
+      ZIO.accessM(_.botService initBot())
+
   }
 
 }
