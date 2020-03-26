@@ -7,7 +7,8 @@ import pme123.ziocamundabot.camunda.{Camunda, _}
 import pme123.ziocamundabot.configuration.CamundaConfig
 import pme123.ziocamundabot.json.{Json, _}
 import pme123.ziocamundabot.polling.Polling
-import pme123.ziocamundabot.register.{Register, _}
+import pme123.ziocamundabot.callbackRegister.{CalllbackRegister, _}
+import pme123.ziocamundabot.chatRegister.ChatRegister
 import pme123.ziocamundabot.template.Template
 import pme123.ziocamundabot.{bot, _}
 import zio.ZLayer.NoDeps
@@ -22,7 +23,7 @@ import scala.io.Source
 object CamundaBotRunner extends App {
 
   //type AppEnvironment = Console with Camunda with Bot with Register with Json with Clock
-  type AppEnvironment = Clock with Console with Camunda with Bot with Register with Json
+  type AppEnvironment = Clock with Console with Camunda with Bot with CalllbackRegister with Json
 
   private def camundaLayer(camundaConfig: CamundaConfig): NoDeps[Nothing, Camunda] = {
 
@@ -36,12 +37,13 @@ object CamundaBotRunner extends App {
     val jsonLayer: NoDeps[Nothing, Json] = json.live
     val pollingLayer: NoDeps[Nothing, Polling] = polling.live(myBot)
     val templateLayer: NoDeps[Nothing, Template] = template.live
-    val registerLayer: NoDeps[Nothing, Register] = register.live
+    val callbackRegisterLayer: NoDeps[Nothing, CalllbackRegister] = callbackRegister.live
+    val chatRegisterLayer: NoDeps[Nothing, ChatRegister] = chatRegister.live
     val camLayer = camundaLayer(camundaConfig)
-    val serviceLayer: NoDeps[Nothing, BotEnv] = camLayer ++ jsonLayer ++ registerLayer ++ templateLayer ++ pollingLayer
-    val botLayer: NoDeps[ Nothing, Bot] = serviceLayer >>> bot.live(myBot)
+    val serviceLayer: NoDeps[Nothing, BotEnv] = camLayer ++ jsonLayer ++ chatRegisterLayer ++ callbackRegisterLayer ++ templateLayer ++ pollingLayer
+    val botLayer: NoDeps[Nothing, Bot] = serviceLayer >>> bot.live(myBot)
 
-    Console.live ++ Clock.live ++ botLayer ++ jsonLayer ++  registerLayer ++ camLayer
+    Console.live ++ Clock.live ++ botLayer ++ jsonLayer ++ callbackRegisterLayer ++ chatRegisterLayer ++ camLayer
   }
 
   def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
@@ -54,7 +56,7 @@ object CamundaBotRunner extends App {
         queue,
         (maybeId: Option[ChatUserOrGroup], chatId: ChatId) =>
           Task.effect(Runtime.default.unsafeRun(
-            register.registerChat(maybeId, chatId).unit.provideLayer(register.live))),
+            chatRegister.registerChat(maybeId, chatId).unit.provideLayer(chatRegister.live))),
         AsyncHttpClientZioBackend(),
         token
       )
@@ -65,11 +67,11 @@ object CamundaBotRunner extends App {
       .fold(_ => 1, _ => 0)
   }
 
-  private lazy val program: ZIO[Clock with Console with Camunda with Bot with Register with Json, AppException, Unit] = {
+  private lazy val program = {
     for {
       _ <- putStrLn("Program start!")
       _ <- fetchAndProcessTasks
-    //  _ <- bot.initBot()
+      //  _ <- bot.initBot()
     } yield ()
   }
 
@@ -80,7 +82,7 @@ object CamundaBotRunner extends App {
   private val workerId = "camunda-bot-scheduler"
   private val botTaskTag = "botTask"
 
-  private lazy val fetchAndProcessTasks: ZIO[Clock with Console with Camunda with Bot with Register with Json, AppException, Nothing] =
+  private lazy val fetchAndProcessTasks =
     (for {
       externalTasks <- fetchAndLock(FetchAndLock(workerId, List(Topic("pme.telegram.demo", Seq(botTaskTag)))))
       _ <- console.putStrLn("FETCHED TASKS " + externalTasks)
@@ -88,10 +90,10 @@ object CamundaBotRunner extends App {
     } yield ())
       .repeat(Schedule.spaced(1.second)).forever
 
-  private def handleExternalTask(externalTask: ExternalTask): ZIO[Console with Camunda with Bot with Register with Json, AppException, Unit] =
+  private def handleExternalTask(externalTask: ExternalTask) =
     for {
       botTask <- fromJsonString[BotTask](externalTask.variables(botTaskTag).value)
-      chatId <- requestChat(botTask.chatUserOrGroup)
+      chatId <- chatRegister.requestChat(botTask.chatUserOrGroup)
       _ <- putStrLn(s"chatId: $chatId")
       maybeRCs <- registerCallback(botTask)
       _ <- putStrLn(s"registerCallback")

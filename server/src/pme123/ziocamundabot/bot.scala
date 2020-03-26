@@ -8,13 +8,14 @@ import pme123.ziocamundabot.bot.BotException.{BotCallbackException, BotServiceEx
 import pme123.ziocamundabot.camunda._
 import pme123.ziocamundabot.json.Json
 import pme123.ziocamundabot.polling.Polling
-import pme123.ziocamundabot.register.{Register, RegisterCallback, ResultCallback}
+import pme123.ziocamundabot.callbackRegister.{CalllbackRegister, RegisterCallback, ResultCallback}
+import pme123.ziocamundabot.chatRegister.ChatRegister
 import pme123.ziocamundabot.template.Template
 import zio._
 
 object bot {
 
-  type BotEnv = Camunda with Json with Register with Template with Polling
+  type BotEnv = Camunda with Json with CalllbackRegister with ChatRegister with Template with Polling
 
   type Bot = Has[Service]
 
@@ -37,7 +38,7 @@ object bot {
 
   def live(bot: TelegramBot): ZLayer[BotEnv, Nothing, Bot] = ZLayer.fromFunction { env: BotEnv =>
     val pollingService = env.get[polling.Service]
-    val registerService = env.get[register.Service]
+    val registerService = env.get[callbackRegister.Service]
     val jsonService = env.get[json.Service]
     val camundaService = env.get[camunda.Service]
     val templateService = env.get[template.Service]

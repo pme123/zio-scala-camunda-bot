@@ -7,7 +7,7 @@ import com.bot4s.telegram.methods.SendMessage
 import com.bot4s.telegram.models.{CallbackQuery, ChatType, InlineKeyboardButton, InlineKeyboardMarkup, Message, ChatId => TelegramChatId}
 import com.softwaremill.sttp.SttpBackend
 import pme123.ziocamundabot.bot._
-import pme123.ziocamundabot.register.RegisterCallback
+import pme123.ziocamundabot.callbackRegister.RegisterCallback
 import zio.{Queue, Task}
 
 case class TelegramBot(queue: Queue[CallbackQuery],

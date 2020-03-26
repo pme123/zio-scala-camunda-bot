@@ -61,4 +61,18 @@ object server extends ScalaModule {
       Libs.scalate
     )
   }
+
+  object test extends Tests {
+    override def ivyDeps = Agg(
+      ivy"dev.zio::zio-test:${Version.zio}",
+      ivy"dev.zio::zio-test-sbt:${Version.zio}"
+    )
+
+    def testOne(args: String*) = T.command {
+      super.runMain("org.scalatest.run", args: _*)
+    }
+
+    def testFrameworks =
+      Seq("zio.test.sbt.ZTestFramework")
+  }
 }
