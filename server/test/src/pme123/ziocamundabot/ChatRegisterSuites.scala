@@ -1,5 +1,6 @@
 package pme123.ziocamundabot
 
+import pme123.ziocamundabot.register.chatRegister
 import zio.test.Assertion.equalTo
 import zio.test.TestAspect._
 import zio.test.{testM, _}

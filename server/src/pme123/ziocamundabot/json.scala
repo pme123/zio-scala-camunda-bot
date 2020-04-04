@@ -1,9 +1,8 @@
 package pme123.ziocamundabot
 
 import play.api.libs.{json => j}
-
 import zio.ZLayer.NoDeps
-import zio.{Has, IO, ZIO, ZLayer}
+import zio.{Has, IO, Layer, ULayer, ZIO, ZLayer}
 
 object json {
   type Json = Has[Service]
@@ -21,7 +20,7 @@ object json {
   def toJson[T](obj: T)(implicit reader: j.Writes[T]): ZIO[Json, Nothing, j.JsValue] =
     ZIO.accessM(_.get.toJson(obj))
 
-  def live: NoDeps[Nothing, Json] = ZLayer.succeed(new Service {
+  def live: ULayer[Json] = ZLayer.succeed(new Service {
     def fromJsonString[T](jsonStr: String)(implicit reader: j.Reads[T]): ZIO[Any, JsonException, T] =
       ZIO.fromEither(j.Json.parse(jsonStr).validate[T].asEither)
         .mapError {

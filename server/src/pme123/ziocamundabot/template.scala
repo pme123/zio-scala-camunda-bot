@@ -1,7 +1,6 @@
 package pme123.ziocamundabot
 
 import org.fusesource.scalate.TemplateEngine
-import zio.ZLayer.NoDeps
 import zio._
 
 object template {
@@ -19,7 +18,7 @@ object template {
   def generate(text: String, templParams: Map[String, String]): RIO[Template, String] =
     ZIO.accessM(_.get.generate(text, templParams))
 
-  def live: NoDeps[Nothing, Template] = ZLayer.succeed(
+  def live: ULayer[Template] = ZLayer.succeed(
     new Service {
       val engine = new TemplateEngine()
 

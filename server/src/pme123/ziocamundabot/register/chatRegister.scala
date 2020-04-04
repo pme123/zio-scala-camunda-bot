@@ -1,11 +1,12 @@
-package pme123.ziocamundabot
+package pme123.ziocamundabot.register
 
-import pme123.ziocamundabot.bot.{ChatId, ChatUserOrGroup}
-import zio.{Has, IO, UIO, ZIO, ZLayer}
-import zio.ZLayer.NoDeps
+import pme123.ziocamundabot.AppException
+import pme123.ziocamundabot.telegram._
 import zio.stm.TMap
+import zio._
 
 object chatRegister {
+
   type ChatRegister = Has[Service]
 
   trait Service {
@@ -27,7 +28,7 @@ object chatRegister {
   private val camundaChatId: ChatId = -319641852L
   private val chatIdMapSTM = TMap.make(camunda_group -> camundaChatId, "pme123" -> 275469757L)
 
-  val live: NoDeps[Nothing, ChatRegister] = ZLayer.fromEffect {
+  val live: ULayer[ChatRegister] = ZLayer.fromEffect {
     chatIdMapSTM.commit.map { chatMap =>
       new Service {
 

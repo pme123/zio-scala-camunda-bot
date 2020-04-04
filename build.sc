@@ -3,18 +3,19 @@
 import mill._, scalalib._
 
 object Version {
-  val scalaVersion = "2.12.8"
+  val scalaVersion = "2.13.1"
 
   val cats = "2.0.0"
   val circe = "0.12.1"
   val http4s = "0.21.1"
-  val sttp = "1.6.4"
-  val zio = "1.0.0-RC18"
-  val zioCats = "2.0.0.0-RC11"
+  val sttp = "2.0.6"
+  val zio = "1.0.0-RC18-2"
+  val zioCats = "2.0.0.0-RC12"
 
   val pureConfig = "0.12.0"
   val telegram = "4.4.0-RC2"
-  val scalate = "1.9.1"
+  val telegramCanoe = "0.4.1"
+  val scalate = "1.9.5"
 }
 
 object Libs {
@@ -29,16 +30,17 @@ object Libs {
     ivy"org.http4s::http4s-blaze-client:${Version.http4s}"
   val http4sCirce = ivy"org.http4s::http4s-circe:${Version.http4s}"
   val http4sDsl = ivy"org.http4s::http4s-dsl:${Version.http4s}"
-  val sttpCore = ivy"com.softwaremill.sttp::core:${Version.sttp}"
+  val sttpCore = ivy"com.softwaremill.sttp.client::core:${Version.sttp}"
   val sttpClient =
-    ivy"com.softwaremill.sttp::async-http-client-backend-zio:${Version.sttp}"
-  val sttpPlayJson = ivy"com.softwaremill.sttp::play-json::${Version.sttp}"
+    ivy"com.softwaremill.sttp.client::async-http-client-backend-zio:${Version.sttp}"
+  val sttpPlayJson = ivy"com.softwaremill.sttp.client::play-json::${Version.sttp}"
   val zio = ivy"dev.zio::zio:${Version.zio}"
   val zioStream = ivy"dev.zio::zio-streams:${Version.zio}"
   val zioCats = ivy"dev.zio::zio-interop-cats:${Version.zioCats}"
 
   val pureConfig = ivy"com.github.pureconfig::pureconfig:${Version.pureConfig}"
   val telegram = ivy"com.bot4s::telegram-core:${Version.telegram}"
+  val telegramCanoe = ivy"org.augustjune::canoe:${Version.telegramCanoe}"
   val scalate = ivy"org.scalatra.scalate::scalate-core:${Version.scalate}"
 }
 
@@ -54,7 +56,8 @@ object server extends ScalaModule {
       Libs.zio,
       Libs.zioStream,
       Libs.zioCats,
-      Libs.telegram,
+   //  Libs.telegram,
+      Libs.telegramCanoe,
       Libs.sttpCore,
       Libs.sttpClient,
       Libs.sttpPlayJson,
