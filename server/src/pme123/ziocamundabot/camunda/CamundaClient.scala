@@ -3,7 +3,7 @@ package pme123.ziocamundabot.camunda
 import play.api.libs.json._
 import pme123.ziocamundabot.camunda.CamundaException.{JsonParseException, ServiceException}
 import pme123.ziocamundabot.configuration.CamundaConfig
-import pme123.ziocamundabot.sttpBackend.SttpTaskBackend
+import sttpBackend.SttpTaskBackend
 import sttp.client._
 import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.model.Uri

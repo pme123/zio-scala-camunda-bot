@@ -2,15 +2,16 @@ package pme123.ziocamundabot.telegram
 
 import canoe.methods.messages.SendMessage
 import canoe.methods.queries.AnswerCallbackQuery
-import canoe.models.{ChatId, InlineKeyboardButton, InlineKeyboardMarkup}
+import canoe.models.{InlineKeyboardButton, InlineKeyboardMarkup}
 import canoe.syntax._
 import pme123.ziocamundabot.register.callbackRegister.RegisterCallback
+import pme123.ziocamundabot.telegram.BotException._
 import pme123.ziocamundabot.telegram.canoeClient.CanoeTaskClient
 import zio._
-import pme123.ziocamundabot.telegram._
-import pme123.ziocamundabot.telegram.BotException._
 
-
+/**
+  * Service to send Messages to the Bot. Uses Canoe implementation.
+  */
 object botMessageSender {
   type BotMessageSender = Has[Service]
 

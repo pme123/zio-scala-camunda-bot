@@ -13,7 +13,6 @@ object Version {
   val zioCats = "2.0.0.0-RC12"
 
   val pureConfig = "0.12.0"
-  val telegram = "4.4.0-RC2"
   val telegramCanoe = "0.4.1"
   val scalate = "1.9.5"
 }
@@ -39,7 +38,6 @@ object Libs {
   val zioCats = ivy"dev.zio::zio-interop-cats:${Version.zioCats}"
 
   val pureConfig = ivy"com.github.pureconfig::pureconfig:${Version.pureConfig}"
-  val telegram = ivy"com.bot4s::telegram-core:${Version.telegram}"
   val telegramCanoe = ivy"org.augustjune::canoe:${Version.telegramCanoe}"
   val scalate = ivy"org.scalatra.scalate::scalate-core:${Version.scalate}"
 }
@@ -56,7 +54,6 @@ object server extends ScalaModule {
       Libs.zio,
       Libs.zioStream,
       Libs.zioCats,
-   //  Libs.telegram,
       Libs.telegramCanoe,
       Libs.sttpCore,
       Libs.sttpClient,

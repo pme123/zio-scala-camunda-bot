@@ -1,4 +1,4 @@
-package pme123.ziocamundabot
+package pme123.ziocamundabot.camunda
 
 import sttp.client.SttpBackend
 import sttp.client.asynchttpclient.WebSocketHandler
@@ -7,7 +7,7 @@ import zio.{Managed, Task, UIO, ZIO}
 
 /**
   * The Backend for STTP. It uses AsyncHttpClientZioBackend.
-  * STTP is Client for the REST services.
+  * STTP is the Client for the Camunda REST services.
   */
 object sttpBackend {
   type SttpTaskBackend = SttpBackend[Task, Nothing, WebSocketHandler]

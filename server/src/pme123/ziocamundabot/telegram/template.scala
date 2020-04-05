@@ -1,4 +1,4 @@
-package pme123.ziocamundabot
+package pme123.ziocamundabot.telegram
 
 import org.fusesource.scalate.TemplateEngine
 import zio._

@@ -6,6 +6,10 @@ import pme123.ziocamundabot.telegram._
 import zio.stm.TMap
 import zio.{Callback => _, _}
 
+/**
+  * Registry to register Callbacks.
+  * Used to remember who claimed the issue.
+  */
 object callbackRegister {
   type CallbackRegister = Has[Service]
 

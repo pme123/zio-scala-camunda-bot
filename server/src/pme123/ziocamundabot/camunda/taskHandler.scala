@@ -1,21 +1,25 @@
 package pme123.ziocamundabot.camunda
 
-import pme123.ziocamundabot.register.callbackRegister.CallbackRegister
-import pme123.ziocamundabot.telegram._
-import pme123.ziocamundabot.register.chatRegister.ChatRegister
 import pme123.ziocamundabot.configuration.{CamundaConfig, Configuration}
 import pme123.ziocamundabot.json.Json
+import pme123.ziocamundabot.register.callbackRegister.CallbackRegister
+import pme123.ziocamundabot.register.chatRegister.ChatRegister
 import pme123.ziocamundabot.register.{callbackRegister, chatRegister}
-import pme123.ziocamundabot.sttpBackend.SttpTaskBackend
-import pme123.ziocamundabot.telegram.botMessageSender
+import sttpBackend.SttpTaskBackend
+import pme123.ziocamundabot.telegram.{botMessageSender, _}
 import pme123.ziocamundabot.telegram.botMessageSender.BotMessageSender
 import pme123.ziocamundabot.{AppException, configuration, json}
-import sttp.client._
-import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.playJson._
 import zio._
 import zio.console.Console
 
+/**
+  * Handles the Tasks from Camunda.
+  * - gets the Task
+  * - locks the Task
+  * - sends Message to the Bot Chat
+  * - completes the Task
+  */
 object taskHandler {
 
   type TaskHandler = Has[Service]

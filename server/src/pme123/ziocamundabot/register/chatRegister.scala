@@ -5,6 +5,10 @@ import pme123.ziocamundabot.telegram._
 import zio.stm.TMap
 import zio._
 
+/**
+  * Registry to register a Private Chat.
+  * Used to send a Task to the correct Chat - coming from Camunda
+  */
 object chatRegister {
 
   type ChatRegister = Has[Service]

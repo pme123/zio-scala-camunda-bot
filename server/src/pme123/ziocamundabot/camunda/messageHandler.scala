@@ -3,13 +3,14 @@ package pme123.ziocamundabot.camunda
 import play.api.libs.json.JsValue
 import pme123.ziocamundabot.configuration
 import pme123.ziocamundabot.configuration.Configuration
-import pme123.ziocamundabot.sttpBackend.SttpTaskBackend
-import sttp.client._
-import sttp.client.asynchttpclient.WebSocketHandler
+import sttpBackend.SttpTaskBackend
 import sttp.client.playJson._
 import zio._
 import zio.console.Console
 
+/**
+  * Send Messages to Camunda.
+  */
 object messageHandler {
 
   type MessageHandler = Has[Service]

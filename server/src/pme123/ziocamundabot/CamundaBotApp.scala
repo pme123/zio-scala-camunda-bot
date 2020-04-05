@@ -1,8 +1,8 @@
 package pme123.ziocamundabot
 
-import pme123.ziocamundabot.camunda.{messageHandler, taskHandler}
+import pme123.ziocamundabot.camunda.{messageHandler, sttpBackend, taskHandler}
 import pme123.ziocamundabot.register.{callbackRegister, chatRegister}
-import pme123.ziocamundabot.sttpBackend.SttpTaskBackend
+import pme123.ziocamundabot.camunda.sttpBackend.SttpTaskBackend
 import pme123.ziocamundabot.telegram.canoeClient.CanoeTaskClient
 import pme123.ziocamundabot.telegram._
 import zio._

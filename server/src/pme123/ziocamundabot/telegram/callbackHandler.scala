@@ -10,11 +10,14 @@ import pme123.ziocamundabot.register.callbackRegister
 import pme123.ziocamundabot.register.callbackRegister.{CallbackRegister, ResultCallback}
 import pme123.ziocamundabot.telegram.BotException._
 import pme123.ziocamundabot.telegram.botMessageSender.BotMessageSender
-import pme123.ziocamundabot.template.Template
-import pme123.ziocamundabot.{json, template}
+import template.Template
+import pme123.ziocamundabot.json
 import zio._
 import zio.interop.catz._
 
+/**
+  * Handles the Callbacks from Telegram. Canoe specific.
+  */
 object callbackHandler {
   type CallbackHandler = Has[Service]
 

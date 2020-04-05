@@ -61,9 +61,9 @@ object canoeScenarios {
                     text = if (myTasks.nonEmpty) myTasks.mkString("\n") else "No open Tasks"
                     _ <- Scenario.eval(chat.send(text))
                   } yield ()
-                case _: Group | _: Supergroup =>
+                case _ =>
                   for {
-                    _ <- Scenario.eval(chat.send(s"Hello!\nSorry Groups cannot have Tasks"))
+                    _ <- Scenario.eval(chat.send(s"Hello!\nSorry only Private Chats can have Tasks"))
                   } yield ()
               }
             }
@@ -84,9 +84,9 @@ object canoeScenarios {
                     _ <- Scenario.eval(chat.send(s"Hello ${(pChat.firstName ++ pChat.lastName).mkString(" ")}, you are successfully registered!"))
 
                   } yield ()
-                case _: Group | _: Supergroup =>
+                case _ =>
                   for {
-                    _ <- Scenario.eval(chat.send(s"Hello!\nSorry you cannot register Groups"))
+                    _ <- Scenario.eval(chat.send(s"Hello!\nSorry only Private Chats can register"))
                   } yield ()
               }
             }
