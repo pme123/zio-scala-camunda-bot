@@ -6,6 +6,9 @@ import zio.{Managed, Task, TaskManaged, ZIO}
 
 import scala.io.Source
 
+/**
+  * For the implementation we need a Canoe TelegramClient.
+  */
 object canoeClient {
   type CanoeTaskClient = TelegramClient[Task]
 

@@ -3,6 +3,10 @@ package pme123.ziocamundabot
 import org.fusesource.scalate.TemplateEngine
 import zio._
 
+/**
+  * generates Message for the Bot Client. E.g: Thanks, {{username}} claimed the issue {{botTaskIdent}}!
+  * It uses Scalate TemplateEngine
+  */
 object template {
   type Template = Has[Service]
 

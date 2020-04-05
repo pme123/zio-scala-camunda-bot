@@ -1,7 +1,8 @@
 package pme123.ziocamundabot.telegram
 
 import canoe.methods.messages.SendMessage
-import canoe.models.{InlineKeyboardButton, InlineKeyboardMarkup}
+import canoe.methods.queries.AnswerCallbackQuery
+import canoe.models.{ChatId, InlineKeyboardButton, InlineKeyboardMarkup}
 import canoe.syntax._
 import pme123.ziocamundabot.register.callbackRegister.RegisterCallback
 import pme123.ziocamundabot.telegram.canoeClient.CanoeTaskClient
@@ -17,20 +18,18 @@ object botMessageSender {
     def sendMessage(chatId: ChatId,
                     maybeRCs: Option[RegisterCallback],
                     msg: String): IO[SendMessageException, Unit]
+
+    def sendImmediateAnswer(queryId: String,
+                    msg: String): IO[SendMessageException, Unit]
   }
 
   type BotMessageSenderDeps = Has[CanoeTaskClient]
-
-  def sendMessage(chatId: ChatId,
-                  maybeRCs: Option[RegisterCallback],
-                  msg: String): ZIO[BotMessageSender, SendMessageException, Unit] =
-    ZIO.accessM(_.get.sendMessage(chatId, maybeRCs, msg))
 
   def live: URLayer[BotMessageSenderDeps, BotMessageSender] =
     ZLayer.fromService[CanoeTaskClient, Service] { canoeClient =>
       new Service {
 
-        implicit val canoe: CanoeTaskClient = canoeClient
+        implicit val canoeCl: CanoeTaskClient = canoeClient
 
 
         override def sendMessage(chatId: ChatId,
@@ -40,7 +39,15 @@ object botMessageSender {
           // val api = new ChatApi(PrivateChat(chatId, None, None, None))
           SendMessage(chatId, msg, replyMarkup = replyMarkup).call
             .mapError(t =>
-              SendMessageException(s"Problem sending $msg:\n${t.getMessage}"))
+              SendMessageException(s"Problem sending message $msg:\n${t.getMessage}"))
+            .unit
+        }
+
+        def sendImmediateAnswer(queryId: String,
+                                msg: String): IO[SendMessageException, Unit] = {
+          AnswerCallbackQuery.notification(queryId, msg).call
+            .mapError(t =>
+              SendMessageException(s"Problem sending answer $msg:\n${t.getMessage}"))
             .unit
         }
 

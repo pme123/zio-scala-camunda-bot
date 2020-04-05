@@ -3,12 +3,12 @@ package pme123.ziocamundabot.telegram
 import canoe.models.{CallbackButtonSelected, CallbackQuery, Update, User => CanoeUser}
 import cats.Applicative
 import fs2.Pipe
-import BotException._
-import pme123.ziocamundabot.register.callbackRegister.{CallbackRegister, ResultCallback}
 import pme123.ziocamundabot.camunda.messageHandler.MessageHandler
 import pme123.ziocamundabot.camunda.{CamMessage, Variable, messageHandler}
 import pme123.ziocamundabot.json.Json
 import pme123.ziocamundabot.register.callbackRegister
+import pme123.ziocamundabot.register.callbackRegister.{CallbackRegister, ResultCallback}
+import pme123.ziocamundabot.telegram.BotException._
 import pme123.ziocamundabot.telegram.botMessageSender.BotMessageSender
 import pme123.ziocamundabot.template.Template
 import pme123.ziocamundabot.{json, template}
@@ -43,7 +43,7 @@ object callbackHandler {
           def handleCallback1(callbackIdent: String, cbq: CallbackQuery,
                              ): Task[Unit] =
             (for {
-              //  _ <- botMessageSender.sendMessage(AnswerCallbackQuery(cbq.id, Some("processing...")))
+                _ <- botMessageSender.sendImmediateAnswer(cbq.id, "processing...")
               maybeRC <- callbackRegisterService.requestCallback(callbackIdent)
               _ <- handleCallback(callbackIdent, cbq, maybeRC)
               _ <- maybeRC.map { regCallback =>
@@ -81,7 +81,6 @@ object callbackHandler {
                     text)
                     .mapError(e => BotServiceException("Problem send Message.", Some(e)))
                 } yield ())
-
               }.toList
             }
 

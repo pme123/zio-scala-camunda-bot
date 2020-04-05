@@ -7,6 +7,10 @@ import pme123.ziocamundabot.telegram.canoeClient.CanoeTaskClient
 import pme123.ziocamundabot.telegram.canoeScenarios.CanoeScenarios
 import zio._
 import zio.interop.catz._
+
+/**
+  * The Telegram Client, sets up the communication with Telegram API
+  */
 object telegramClient {
   type TelegramClient = Has[Service]
 
@@ -31,7 +35,9 @@ object telegramClient {
             Bot
               .polling[Task]
               .follow(
-                scenarios.newTask
+                scenarios.newTask,
+                scenarios.myTasks,
+                scenarios.register
               )
               .through(
                 callbackHandler.answerCallbacks

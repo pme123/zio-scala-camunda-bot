@@ -1,0 +1,3 @@
+register - Registers you to the Bot.
+mytasks - My pending Tasks.
+newtask - Report an Issue.

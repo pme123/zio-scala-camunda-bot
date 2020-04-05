@@ -1,9 +1,12 @@
 package pme123.ziocamundabot
 
 import play.api.libs.{json => j}
-import zio.ZLayer.NoDeps
-import zio.{Has, IO, Layer, ULayer, ZIO, ZLayer}
+import zio._
 
+/**
+  * Marshalling and Unmarshalling JSON for Telegram API and Camunda API.
+  * It uses play-json.
+  */
 object json {
   type Json = Has[Service]
 

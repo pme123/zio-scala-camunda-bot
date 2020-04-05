@@ -12,3 +12,4 @@ bot.token
 /.metals/metals.h2.db
 /.metals/metals.log
 /.vscode/settings.json
+/zio-scala-camunda-bot.git.iml

@@ -4,6 +4,9 @@ import pureconfig.generic.semiauto.deriveReader
 import pureconfig.{ConfigReader, ConfigSource}
 import zio._
 
+/**
+  * The configuration. At the moment for the Camunda Service.
+  */
 object configuration {
   type Configuration = Has[Service]
 

@@ -9,6 +9,9 @@ import zio._
 import zio.console.Console
 import zio.interop.catz._
 
+/**
+  * The main App that wires everything and starts the Bot Client and the Camunda Client.
+  */
 object CamundaBotApp extends zio.App {
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
@@ -26,7 +29,7 @@ object CamundaBotApp extends zio.App {
   private def makeProgram(
                            canoeClient: TaskManaged[CanoeTaskClient],
                            sttpBackend: TaskManaged[SttpTaskBackend]
-                         ): ZIO[zio.ZEnv, Throwable, Int] = {
+                         ): ZIO[zio.ZEnv, Any, Any] = {
 
     val configLayer = configuration.live
     val canoeClientLayer = canoeClient.toLayer
@@ -35,20 +38,20 @@ object CamundaBotApp extends zio.App {
     val callbackRegisterLayer = callbackRegister.live
     val templateLayer = template.live
     val messageHandlerLayer = (configLayer ++ Console.live ++ sttpBackend.toLayer) >>> messageHandler.live
-    val canoeScenarioLayer = (messageHandlerLayer ++ canoeClientLayer) >>> canoeScenarios.live
+    val canoeScenarioLayer = (messageHandlerLayer ++ canoeClientLayer ++ chatRegisterLayer ++ callbackRegisterLayer) >>> canoeScenarios.live
     val botMessageSenderLayer = canoeClientLayer >>> botMessageSender.live
     val callbackHandlerLayer = (botMessageSenderLayer ++ callbackRegisterLayer ++ jsonLayer ++ messageHandlerLayer ++ templateLayer) >>> callbackHandler.live
     val telegramClientLayer = (canoeClientLayer ++ canoeScenarioLayer ++ callbackHandlerLayer) >>> telegramClient.live
     val taskHandlerLayer = (configLayer ++ Console.live ++ sttpBackend.toLayer ++ jsonLayer ++ chatRegisterLayer ++ callbackRegisterLayer ++ messageHandlerLayer ++ botMessageSenderLayer) >>> taskHandler.live
 
     val botClient = telegramClient.start
-      .catchAll { e =>
-        zio.console.putStr(s"ERROR Bot Client handled: ${e.getClass}:\n ${e.printStackTrace()}")
-      }.as(0)
+      .flatMapError { e =>
+        zio.console.putStr(s"ERROR Bot Client: ${e.getClass}:\n ${e.printStackTrace()}")
+      }
     val camundaClient = taskHandler.fetchAndLock
-      .catchAll { e =>
-        zio.console.putStr(s"ERROR Camunda Client handled: ${e.getClass}:\n ${e.printStackTrace()}")
-      }.as(0)
+      .flatMapError { e =>
+        zio.console.putStr(s"ERROR Camunda Client: ${e.getClass}:\n ${e.printStackTrace()}")
+      }
 
     (botClient.fork *> camundaClient)
       .provideCustomLayer(Console.live ++ telegramClientLayer ++ taskHandlerLayer)
