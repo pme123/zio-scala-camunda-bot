@@ -41,10 +41,10 @@ Open the chat with your Bot and type `\newtask`.
 Now you should receive a message in your group. Check the BPMN to see how the process works.
 
 # Process
-![Camunda BPMN][https://github.com/pme123/zio-scala-camunda-bot/raw/master/BPMN-bot-integration.png]
+![Camunda BPMN](https://github.com/pme123/zio-scala-camunda-bot/raw/master/BPMN-bot-integration.png)
 
 # ZIO ZLayers
-![ZIO ZLayers][https://github.com/pme123/zio-scala-camunda-bot/raw/master/ZLayers.png]
+![ZIO ZLayers](https://github.com/pme123/zio-scala-camunda-bot/raw/master/ZLayers.png)
 
 # Development
 ## Mill
